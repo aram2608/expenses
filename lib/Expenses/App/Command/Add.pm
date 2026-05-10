@@ -48,3 +48,13 @@ sub execute {
 }
 
 1;
+
+=head1 NAME
+
+Expenses::App::Command::Add - Add a new expense
+
+=head1 SYNOPSIS
+
+    exp.pl add --tag groceries --amount 42.50 [--date 'May, 09, 2026']
+
+=cut

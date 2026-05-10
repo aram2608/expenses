@@ -46,3 +46,13 @@ sub execute {
 }
 
 1;
+
+=head1 NAME
+
+Expenses::App::Command::Tags - List all expense tags
+
+=head1 SYNOPSIS
+
+    exp.pl tags [--date-from 'May, 01, 2026'] [--date-to 'May, 31, 2026']
+
+=cut

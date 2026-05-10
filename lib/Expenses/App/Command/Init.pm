@@ -29,3 +29,13 @@ sub execute {
 }
 
 1;
+
+=head1 NAME
+
+Expenses::App::Command::Init - Initialize the expenses database
+
+=head1 DESCRIPTION
+
+Creates the C<expenses> table if it does not already exist.
+
+=cut
