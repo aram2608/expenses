@@ -11,34 +11,14 @@ sub connect_db {
         AutoCommit => 1,
     });
 
-    # Dollar amounts are stored with cents as the last two digits
-    # So 10 dollars == 1000
-    # Display
-    # my $display = sprintf('$%.2f', $amount_cents / 100);
-    # Store
-    # my $cents = int($user_input * 100 + 0.5);
-    my $sql = <<~'SQL';
-        CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tag TEXT NOT NULL,
-            amount INTEGER NOT NULL,
-            date TEXT NOT NULL DEFAULT (date('now'))
-        )
-    SQL
-
-    $dbh->do($sql);
-
-    print "Connected to database successfuly\n";
-
     return $dbh;
 }
 
 sub add_expense {
     my ($tag, $amount, $date, $dbh) = @_;
    
-    my $sth = $dbh->prepare(
-        "INSERT INTO expenses (tag, amount, date) VALUES (?, ?, ?)"
-    ) or die "Failed to prepare SQL statement: $dbh->errstr()\n";
+    my $sth = $dbh->prepare("INSERT INTO expenses (tag, amount, date) VALUES (?, ?, ?)");
+
     $sth->execute(
         $tag, 
         $amount, 
@@ -48,21 +28,21 @@ sub add_expense {
     $sth->finish();
 }
 
-sub print_total {
-   my ($dbh) = @_;
+sub get_total {
+    my ($dbh) = @_;
+    return $dbh->selectrow_array("SELECT SUM(amount) FROM expenses");
+}
 
-    my $sth = $dbh->prepare(
-        "SELECT SUM(amount) FROM expenses"
-    ) or die "Failed to prepare SQL statement: $dbh->errstr()\n";
-    $sth->execute() or die "Failed to sum expenses\n";
+sub get_tags {
+    my ($dbh) = @_;
+    return $dbh->selectcol_arrayref("SELECT DISTINCT tag FROM expenses ORDER BY tag");
+}
 
-    my $total = $sth->fetchrow();
-
-    my $formmated =  sprintf('$%.2f', $total / 100);
-
-    print "Total expenses: $formmated\n"; 
-
-    $sth->finish();
+sub with_db {
+  my ($callback) = @_;
+  my $dbh = connect_db();
+  $callback->($dbh);
+  $dbh->disconnect;
 }
 
 1;
