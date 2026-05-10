@@ -20,8 +20,9 @@ sub opt_spec {
 sub execute {
     my ( $self, $opt, $args ) = @_;
 
-    $self->usage_error("--tag is required")    unless defined $opt->tag;
-    $self->usage_error("--amount is required") unless defined $opt->amount;
+    $self->usage_error("--tag is required")                  unless defined $opt->tag;
+    $self->usage_error("--amount is required")               unless defined $opt->amount;
+    $self->usage_error("--amount must be greater than zero") unless $opt->amount > 0;
 
     my $dt;
     if ( defined $opt->date ) {
@@ -40,7 +41,7 @@ sub execute {
     Expenses::DB::with_db(
         sub {
             my ($dbh) = @_;
-            Expenses::DB::add_expense( $opt->tag, $cents, $formatted, $dbh );
+            Expenses::DB::add_expense( $dbh, $opt->tag, $cents, $formatted );
             print "Added: " . $opt->tag . ", \$" . $opt->amount . ", $formatted\n";
         }
     );

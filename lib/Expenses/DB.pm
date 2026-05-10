@@ -18,36 +18,51 @@ sub connect_db {
 }
 
 sub add_expense {
-    my ( $tag, $amount, $date, $dbh ) = @_;
+    my ( $dbh, $tag, $amount, $date ) = @_;
 
     my $sth = $dbh->prepare("INSERT INTO expenses (tag, amount, date) VALUES (?, ?, ?)");
-
-    $sth->execute( $tag, $amount, $date ) or die "Failed to add expense: $tag, $amount, $date\n";
-
-    $sth->finish();
+    $sth->execute( $tag, $amount, $date );
 }
 
 sub get_total {
-    my ( $dbh, $formatted ) = @_;
-    my ($total) =
-        defined $formatted
-        ? $dbh->selectrow_array(
-        "SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND date('now')",
-        undef, $formatted )
-        : $dbh->selectrow_array("SELECT SUM(amount) FROM expenses");
+    my ( $dbh, $from, $to ) = @_;
+    my $total;
+    if ( defined $from && defined $to ) {
+        $total =
+            $dbh->selectrow_array( "SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND ?",
+            undef, $from, $to );
+    } elsif ( defined $from ) {
+        $total = $dbh->selectrow_array(
+            "SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND date('now')",
+            undef, $from );
+    } else {
+        $total = $dbh->selectrow_array("SELECT SUM(amount) FROM expenses");
+    }
     return $total // 0;
 }
 
 sub get_tags {
-    my ($dbh) = @_;
-    return $dbh->selectcol_arrayref("SELECT DISTINCT tag FROM expenses ORDER BY tag");
+    my ( $dbh, $from, $to ) = @_;
+    if ( defined $from && defined $to ) {
+        return $dbh->selectcol_arrayref(
+            "SELECT DISTINCT tag FROM expenses WHERE date BETWEEN ? AND ? ORDER BY tag",
+            undef, $from, $to );
+    } elsif ( defined $from ) {
+        return $dbh->selectcol_arrayref(
+            "SELECT DISTINCT tag FROM expenses WHERE date BETWEEN ? AND date('now') ORDER BY tag",
+            undef, $from );
+    } else {
+        return $dbh->selectcol_arrayref("SELECT DISTINCT tag FROM expenses ORDER BY tag");
+    }
 }
 
 sub with_db {
     my ($callback) = @_;
     my $dbh = connect_db();
-    $callback->($dbh);
+    eval { $callback->($dbh) };
+    my $err = $@;
     $dbh->disconnect;
+    die $err if $err;
 }
 
 1;

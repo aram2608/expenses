@@ -2,8 +2,7 @@ package Expenses::App::Command::Init;
 use strict;
 use warnings;
 use App::Cmd::Setup -command;
-use DBI;
-use FindBin;
+use Expenses::DB;
 
 sub abstract { "Initialize the application" }
 
@@ -12,22 +11,10 @@ sub opt_spec {
 }
 
 sub execute {
-    my $db_path = "$FindBin::Bin/../expenses.db";
-    my $dbh     = DBI->connect(
-        "DBI:SQLite:dbname=$db_path",
-        "", "",
-        {   RaiseError => 1,
-            AutoCommit => 1,
-        }
-    );
+    my ( $self, $opt, $args ) = @_;
 
-    # Dollar amounts are stored with cents as the last two digits
-    # So 10 dollars == 1000
-    # Display
-    # my $display = sprintf('$%.2f', $amount_cents / 100);
-    # Store
-    # my $cents = int($user_input * 100 + 0.5);
-    my $sql = <<~'SQL';
+    my $dbh = Expenses::DB::connect_db();
+    $dbh->do(<<~'SQL');
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tag TEXT NOT NULL,
@@ -36,9 +23,7 @@ sub execute {
         )
     SQL
 
-    $dbh->do($sql);
-
-    print "Created database successfuly\n";
+    print "Created database successfully\n";
 
     $dbh->disconnect();
 }
