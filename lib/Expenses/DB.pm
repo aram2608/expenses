@@ -6,31 +6,36 @@ use FindBin;
 
 sub connect_db {
     my $db_path = "$FindBin::Bin/../expenses.db";
-    my $dbh = DBI->connect("DBI:SQLite:dbname=$db_path", "", "", {
-        RaiseError => 1,
-        AutoCommit => 1,
-    });
+    my $dbh     = DBI->connect(
+        "DBI:SQLite:dbname=$db_path",
+        "", "",
+        {   RaiseError => 1,
+            AutoCommit => 1,
+        }
+    );
 
     return $dbh;
 }
 
 sub add_expense {
-    my ($tag, $amount, $date, $dbh) = @_;
-   
+    my ( $tag, $amount, $date, $dbh ) = @_;
+
     my $sth = $dbh->prepare("INSERT INTO expenses (tag, amount, date) VALUES (?, ?, ?)");
 
-    $sth->execute(
-        $tag, 
-        $amount, 
-        $date
-    ) or die "Failed to add expense: $tag, $amount, $date\n";
+    $sth->execute( $tag, $amount, $date ) or die "Failed to add expense: $tag, $amount, $date\n";
 
     $sth->finish();
 }
 
 sub get_total {
-    my ($dbh) = @_;
-    return $dbh->selectrow_array("SELECT SUM(amount) FROM expenses");
+    my ( $dbh, $formatted ) = @_;
+    my ($total) =
+        defined $formatted
+        ? $dbh->selectrow_array(
+        "SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND date('now')",
+        undef, $formatted )
+        : $dbh->selectrow_array("SELECT SUM(amount) FROM expenses");
+    return $total // 0;
 }
 
 sub get_tags {
@@ -39,10 +44,10 @@ sub get_tags {
 }
 
 sub with_db {
-  my ($callback) = @_;
-  my $dbh = connect_db();
-  $callback->($dbh);
-  $dbh->disconnect;
+    my ($callback) = @_;
+    my $dbh = connect_db();
+    $callback->($dbh);
+    $dbh->disconnect;
 }
 
 1;
