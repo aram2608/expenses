@@ -39,7 +39,11 @@ sub execute {
     Expenses::DB::with_db(
         sub {
             my ($dbh) = @_;
-            my $tags = Expenses::DB::get_tags( $dbh, $from, $to );
+            my $tags = Expenses::DB::get_tags(
+                $dbh,
+                ( defined $from ? ( from => $from ) : () ),
+                ( defined $to   ? ( to   => $to )   : () ),
+            );
             print "$_\n" for @$tags;
         }
     );
