@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 sub cents_to_dollars { sprintf( '%.2f', $_[0] / 100 ) }
-sub dollars_to_cents { int( $_[0] * 100 + 0.5 ) }
+sub dollars_to_cents { int( sprintf( '%.0f', $_[0] * 100 ) ) }
 
 1;
 

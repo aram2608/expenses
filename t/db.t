@@ -8,7 +8,9 @@ use Expenses::DB;
 sub test_dbh {
     my $dbh =
         DBI->connect( 'DBI:SQLite:dbname=:memory:', '', '', { RaiseError => 1, AutoCommit => 1 } );
-    $dbh->do('CREATE TABLE expenses (id INTEGER PRIMARY KEY, tag TEXT, amount INTEGER, date TEXT)');
+    $dbh->do(
+'CREATE TABLE expenses (id INTEGER PRIMARY KEY, tag TEXT, amount INTEGER, date TEXT, note TEXT)'
+    );
     return $dbh;
 }
 

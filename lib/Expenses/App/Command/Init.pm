@@ -19,7 +19,8 @@ sub execute {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tag TEXT NOT NULL,
             amount INTEGER NOT NULL,
-            date TEXT NOT NULL DEFAULT (date('now'))
+            date TEXT NOT NULL DEFAULT (date('now')),
+            note TEXT NOT NULL DEFAULT 'No description provided'
         )
     SQL
 

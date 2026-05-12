@@ -2,7 +2,7 @@ package Expenses::App::Command::Tags;
 use strict;
 use warnings;
 use App::Cmd::Setup -command;
-use DateTime::Format::Strptime;
+use Expenses::App::Util qw(parse_date_range);
 use Expenses::DB;
 
 sub abstract { "Print all the tags in the database" }
@@ -14,27 +14,16 @@ sub opt_spec {
     );
 }
 
+sub validate_args {
+    my ( $self, $opt, $args ) = @_;
+    $self->usage_error("--date-to requires --date-from")
+        if defined $opt->date_to && !defined $opt->date_from;
+}
+
 sub execute {
     my ( $self, $opt, $args ) = @_;
 
-    die "--date-to requires --date-from\n"
-        if defined $opt->date_to && !defined $opt->date_from;
-
-    my ( $from, $to );
-
-    if ( defined $opt->date_from || defined $opt->date_to ) {
-        my $parser = DateTime::Format::Strptime->new(
-            pattern  => '%B, %d, %Y',
-            on_error => 'croak',
-        );
-        $from = $parser->parse_datetime( $opt->date_from )->strftime('%Y-%m-%d')
-            if defined $opt->date_from;
-        $to = $parser->parse_datetime( $opt->date_to )->strftime('%Y-%m-%d')
-            if defined $opt->date_to;
-    }
-
-    die "--date-from must not be after --date-to\n"
-        if defined $from && defined $to && $from gt $to;
+    my ( $from, $to ) = parse_date_range($opt);
 
     Expenses::DB::with_db(
         sub {

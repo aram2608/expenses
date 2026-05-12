@@ -1,18 +1,17 @@
-package Expenses::App::Command::Total;
+package Expenses::App::Command::List;
 use strict;
 use warnings;
 use App::Cmd::Setup -command;
 use Expenses::App::Util qw(parse_date_range);
 use Expenses::DB;
-use Expenses::Format;
 
-sub abstract { "Print total expenses stored in the database" }
+sub abstract    { "Print all the entries in the database" }
+sub description { "Print all entries in the database, can be subset by 'date'" }
 
 sub opt_spec {
     return (
         [ "date-to=s",   "end date e.g. 'May, 09, 2026' (requires --date-from)" ],
         [ "date-from=s", "start date e.g. 'May, 09, 2026'" ],
-        [ "tag=s",       "tag for the expense e.g. 'dinner'" ],
     );
 }
 
@@ -26,25 +25,21 @@ sub execute {
     my ( $self, $opt, $args ) = @_;
 
     my ( $from, $to ) = parse_date_range($opt);
-    my $tag = $opt->tag;
 
     Expenses::DB::with_db(
         sub {
             my ($dbh) = @_;
-            my $total = Expenses::DB::get_total( $dbh, from => $from, to => $to, tag => $tag );
-            printf "Total: \$%s\n", Expenses::Format::cents_to_dollars($total);
+            my $expenses = Expenses::DB::get_expenses(
+                $dbh,
+                ( defined $from ? ( from => $from ) : () ),
+                ( defined $to   ? ( to   => $to )   : () ),
+            );
+            printf "%i %s %-12s %8.2f %s\n", $_->{id}, $_->{date}, $_->{tag}, $_->{amount} / 100,
+                $_->{note} // ''
+                for @$expenses;
         }
     );
 }
 
 1;
 
-=head1 NAME
-
-Expenses::App::Command::Total - Print total expenses
-
-=head1 SYNOPSIS
-
-    exp.pl total [--date-from 'May, 01, 2026'] [--date-to 'May, 31, 2026'] [--tag groceries]
-
-=cut

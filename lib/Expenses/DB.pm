@@ -18,10 +18,36 @@ sub connect_db {
 }
 
 sub add_expense {
-    my ( $dbh, $tag, $amount, $date ) = @_;
+    my ( $dbh, $tag, $amount, $date, $note ) = @_;
 
-    my $sth = $dbh->prepare("INSERT INTO expenses (tag, amount, date) VALUES (?, ?, ?)");
-    $sth->execute( $tag, $amount, $date );
+    my $sth = $dbh->prepare("INSERT INTO expenses (tag, amount, date, note) VALUES (?, ?, ?, ?)");
+    $sth->execute( $tag, $amount, $date, $note );
+}
+
+# Update individual fields:
+# -- note
+# UPDATE expenses SET note = 'new note' WHERE id = ?;
+# -- tag
+# UPDATE expenses SET tag = 'groceries' WHERE id = ?;
+# -- amount (in cents, assuming that's how you store it)
+# UPDATE expenses SET amount = 1500 WHERE id = ?;
+# -- date
+# UPDATE expenses SET date = '2026-05-10' WHERE id = ?;
+
+sub update_builder {
+    my ( $dbh, %f ) = @_;
+    my ( @sets, @binds );
+
+    if ( defined $f{tag} )    { push @sets, "tag = ?";    push @binds, $f{tag} }
+    if ( defined $f{amount} ) { push @sets, "amount = ?"; push @binds, $f{amount} }
+    if ( defined $f{note} )   { push @sets, "note = ?";   push @binds, $f{note} }
+    if ( defined $f{date} )   { push @sets, "date = ?";   push @binds, $f{date} }
+
+    return unless @sets;
+
+    my $sql = "UPDATE expenses SET " . join( ", ", @sets ) . " WHERE id = ?";
+    push @binds, $f{id};
+    return $sql, @binds;
 }
 
 sub where_builder {
@@ -31,6 +57,19 @@ sub where_builder {
     if ( defined $f{to} )   { push @clauses, "date <= ?"; push @binds, $f{to} }
     if ( defined $f{tag} )  { push @clauses, "tag = ?";   push @binds, $f{tag} }
     return ( @clauses ? " WHERE " . join( " AND ", @clauses ) : "" ), @binds;
+}
+
+sub get_expenses {
+    my ( $dbh,   %f )     = @_;
+    my ( $where, @binds ) = where_builder(%f);
+    my $sql = "SELECT id, date, tag, amount, note FROM expenses$where ORDER BY date DESC ";
+    return $dbh->selectall_arrayref( $sql, { Slice => {} }, @binds );
+}
+
+sub update_expense {
+    my ( $dbh, %f )     = @_;
+    my ( $sql, @binds ) = update_builder(%f);
+    $dbh->do( $sql, undef, @binds );
 }
 
 sub get_total {
@@ -71,7 +110,7 @@ Returns a connected DBI handle to C<expenses.db>.
 
 Connects, invokes C<$callback-E<gt>($dbh)>, then disconnects. Dies on error.
 
-=head2 add_expense($dbh, $tag, $amount, $date)
+=head2 add_expense($dbh, $tag, $amount, $date, $note)
 
 Inserts one expense row. C<$amount> is in cents; C<$date> is C<YYYY-MM-DD>.
 
